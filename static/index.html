@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Plan Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.agent .message-content {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        #dynamicFormContainer {
+            width: 100%;
+        }
+
+        .chat-input-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 12px 16px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Dynamic form styles */
+        .dynamic-form {
+            margin-top: 10px;
+            padding: 15px;
+            background: #f0f4ff;
+            border-radius: 12px;
+            border: 2px solid #667eea;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+        }
+
+        .form-group .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .form-group .radio-option input[type="radio"] {
+            width: auto;
+        }
+
+        .form-group .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .form-group .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 12px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .form-group .checkbox-option:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .form-group .checkbox-option input[type="checkbox"] {
+            width: auto;
+        }
+
+        /* Location button container styles */
+        .location-input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .location-input-wrapper input[type="text"] {
+            flex: 1;
+        }
+
+        .location-button {
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .location-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .location-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .location-button .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .address-info {
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .form-submit-button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 10px;
+        }
+
+        .form-submit-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .form-submit-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Training plan styles */
+        .training-plan-container {
+            margin-top: 10px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid #667eea;
+        }
+
+        .training-plan-day {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .training-plan-day:last-child {
+            margin-bottom: 0;
+        }
+
+        .training-plan-day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .training-plan-date {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .training-plan-weather {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .training-plan-section {
+            margin-top: 12px;
+        }
+
+        .training-plan-section-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #667eea;
+            margin-bottom: 6px;
+        }
+
+        .training-plan-section-content {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .training-plan-venue {
+            margin-top: 8px;
+        }
+
+        .training-plan-venue a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .training-plan-venue a:hover {
+            text-decoration: underline;
+        }
+
+        .training-plan-gear {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .training-plan-gear-item {
+            padding: 4px 8px;
+            background: #e8f4f8;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .training-plan-summary {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f4f8;
+            border-radius: 8px;
+        }
+
+        .training-plan-summary-title {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Load form configuration from external file -->
+    <script src="/static/form_config.js"></script>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🏃‍♂️ Training Plan Generator</h1>
+            <p style="font-size: 0.9em; opacity: 0.9;">Your Personalized Training Plan Expert</p>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <!-- Messages will be automatically added here -->
+        </div>
+        
+        <div class="chat-input-container">
+            <!-- Dynamic form container -->
+            <div id="dynamicFormContainer" class="hidden"></div>
+            
+            <form class="chat-input-form" id="chatForm">
+                <input 
+                    type="text" 
+                    class="chat-input" 
+                    id="messageInput" 
+                    placeholder="Type a message..."
+                    autocomplete="off"
+                />
+                <button type="submit" class="send-button" id="sendButton">
+                    Send
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let userId = null;
+        let sessionId = null;
+        let isWaitingForResponse = false;
+        
+        // Information collection state: true means collecting info, false means collection completed
+        let isCollectingInfo = true;
+        
+        // Form field configuration is loaded from /static/form_config.js
+        // The formFields variable is defined in that external file
+
+        // Store current location data
+        let currentLocationData = null;
+
+        // Get current location
+        async function getCurrentLocation(cityInput, locationButton, addressInfo) {
+            if (!navigator.geolocation) {
+                alert('Your browser does not support geolocation');
+                return;
+            }
+
+            // Disable button and show loading state
+            locationButton.disabled = true;
+            locationButton.innerHTML = '<span class="spinner"></span> Locating...';
+
+            try {
+                // Get current position
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    });
+                });
+
+                const { latitude, longitude } = position.coords;
+                console.log('📍 Got location:', latitude, longitude);
+
+                // Call backend API to get detailed address
+                const response = await fetch(`/api/geocode?lat=${latitude}&lng=${longitude}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Geocoding failed: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('📍 Address info:', data);
+
+                // Fill city input
+                cityInput.value = data.city;
+                
+                // Store detailed address information
+                currentLocationData = data;
+                
+                // Manually trigger input event so validation function can detect value change and update button state
+                const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+                cityInput.dispatchEvent(inputEvent);
+                
+                // Also directly find and update submit button state (double insurance)
+                const form = cityInput.closest('form');
+                if (form) {
+                    const submitButton = form.querySelector('.form-submit-button');
+                    if (submitButton && cityInput.value.trim() !== '') {
+                        submitButton.disabled = false;
+                    }
+                }
+
+                // Display address information
+                if (addressInfo) {
+                    addressInfo.innerHTML = `
+                        <div style="margin-top: 8px; padding: 10px; background: #e8f4f8; border-radius: 8px; font-size: 12px; color: #333;">
+                            <div style="font-weight: 600; margin-bottom: 4px;">📍 ${data.formatted_address}</div>
+                            ${data.address.city ? `<div>City: ${data.address.city}</div>` : ''}
+                            ${data.address.district ? `<div>District: ${data.address.district}</div>` : ''}
+                            ${data.address.province ? `<div>Province/State: ${data.address.province}</div>` : ''}
+                            ${data.address.country ? `<div>Country: ${data.address.country}</div>` : ''}
+                        </div>
+                    `;
+                }
+
+                // Restore button state
+                locationButton.disabled = false;
+                locationButton.innerHTML = '📍 Get Current Location';
+
+            } catch (error) {
+                console.error('❌ Location failed:', error);
+                
+                let errorMessage = 'Location failed';
+                if (error.code === 1) {
+                    errorMessage = 'Location permission denied. Please allow location access in browser settings';
+                } else if (error.code === 2) {
+                    errorMessage = 'Unable to get location information. Please check network connection';
+                } else if (error.code === 3) {
+                    errorMessage = 'Location timeout. Please try again';
+                } else if (error.message.includes('Geocoding failed')) {
+                    errorMessage = 'Address parsing failed. Please enter city name manually';
+                }
+
+                alert(errorMessage);
+                
+                // Restore button state
+                locationButton.disabled = false;
+                locationButton.innerHTML = '📍 Get Current Location';
+            }
+        }
+
+        // Initialize session and automatically send welcome message
+        async function initializeSession() {
+            try {
+                // Reset collection state
+                isCollectingInfo = true;
+                
+                // Hide text input box on initialization
+                const chatForm = document.getElementById('chatForm');
+                if (chatForm) {
+                    chatForm.style.display = 'none';
+                }
+                
+                // Call backend API to create session
+                const response = await fetch('/api/create_session', {
+                    method: 'POST'
+                });
+
+                userId = response.headers.get('X-User-Id');
+                sessionId = response.headers.get('X-Session-Id');
+
+                // Show typing indicator
+                showTypingIndicator();
+
+                // Read welcome message stream (Server-Sent Events)
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let welcomeText = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            if (data === '[DONE]') {
+                                hideTypingIndicator();
+                                if (welcomeText) {
+                                    console.log('📨 Welcome message:', welcomeText);
+                                    addMessage('agent', welcomeText);
+                                    // Check if form needs to be displayed
+                                    checkAndShowForm(welcomeText);
+                                } else {
+                                    console.warn('⚠️ Welcome message is empty');
+                                }
+                                return;
+                            }
+                            welcomeText += data;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error initializing session:', error);
+                hideTypingIndicator();
+                addMessage('agent', 'Sorry, an error occurred while initializing the session. Please refresh the page and try again.');
+            }
+        }
+
+        /**
+         * Extract training plan JSON from Agent response
+         */
+        function extractTrainingPlanJSON(content) {
+            if (!content || typeof content !== 'string') {
+                return null;
+            }
+
+            const trimmed = content.trim();
+            if (!trimmed) {
+                return null;
+            }
+
+            // Method 1: Try to parse JSON directly (if content is pure JSON)
+            try {
+                const json = JSON.parse(trimmed);
+                if (json.training_plan && Array.isArray(json.training_plan)) {
+                    console.log('✅ Direct JSON parsing succeeded');
+                    return json;
+                }
+            } catch (e) {
+                // Not pure JSON, continue trying other methods
+            }
+
+            // Method 2: Try to extract JSON from Markdown code block
+            const jsonBlockRegex = /```(?:json)?\s*([\s\S]*?)```/;
+            const match = trimmed.match(jsonBlockRegex);
+            if (match) {
+                try {
+                    const json = JSON.parse(match[1].trim());
+                    if (json.training_plan && Array.isArray(json.training_plan)) {
+                        console.log('✅ Extracted JSON from Markdown code block succeeded');
+                        return json;
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Failed to parse JSON from code block:', e);
+                }
+            }
+
+            // Method 3: Try to find JSON object (find first { to last })
+            // Use more precise regex to ensure matching complete JSON object
+            const jsonObjectRegex = /\{[\s\S]*?"training_plan"[\s\S]*?\}/;
+            let jsonMatch = trimmed.match(jsonObjectRegex);
+            
+            // If not found, try more lenient matching (from first {)
+            if (!jsonMatch) {
+                const firstBrace = trimmed.indexOf('{');
+                if (firstBrace !== -1) {
+                    // From first {, find last matching }
+                    let braceCount = 0;
+                    let lastBrace = -1;
+                    for (let i = firstBrace; i < trimmed.length; i++) {
+                        if (trimmed[i] === '{') braceCount++;
+                        if (trimmed[i] === '}') {
+                            braceCount--;
+                            if (braceCount === 0) {
+                                lastBrace = i;
+                                break;
+                            }
+                        }
+                    }
+                    if (lastBrace !== -1) {
+                        jsonMatch = [trimmed.substring(firstBrace, lastBrace + 1)];
+                    }
+                }
+            }
+            
+            if (jsonMatch) {
+                try {
+                    const json = JSON.parse(jsonMatch[0]);
+                    if (json.training_plan && Array.isArray(json.training_plan)) {
+                        console.log('✅ Extracted JSON from text succeeded');
+                        return json;
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Failed to parse extracted JSON:', e);
+                    console.log('Extracted content:', jsonMatch[0].substring(0, 200));
+                }
+            }
+
+            // Method 4: Try to find JSON fragment containing "training_plan"
+            const trainingPlanIndex = trimmed.indexOf('"training_plan"');
+            if (trainingPlanIndex !== -1) {
+                // Find nearest { forward
+                let startIndex = trimmed.lastIndexOf('{', trainingPlanIndex);
+                if (startIndex !== -1) {
+                    // Find matching } backward
+                    let braceCount = 0;
+                    let endIndex = -1;
+                    for (let i = startIndex; i < trimmed.length; i++) {
+                        if (trimmed[i] === '{') braceCount++;
+                        if (trimmed[i] === '}') {
+                            braceCount--;
+                            if (braceCount === 0) {
+                                endIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    if (endIndex !== -1) {
+                        try {
+                            const json = JSON.parse(trimmed.substring(startIndex, endIndex + 1));
+                            if (json.training_plan && Array.isArray(json.training_plan)) {
+                                console.log('✅ Extracted JSON via training_plan keyword succeeded');
+                                return json;
+                            }
+                        } catch (e) {
+                            console.warn('⚠️ Failed to parse JSON extracted via keyword:', e);
+                        }
+                    }
+                }
+            }
+
+            console.warn('⚠️ Failed to extract training plan JSON from content');
+            console.log('Content preview:', trimmed.substring(0, 500));
+            return null;
+        }
+
+        /**
+         * Render training plan
+         */
+        function renderTrainingPlan(planData) {
+            const container = document.createElement('div');
+            container.className = 'training-plan-container';
+
+            // Render plan for each day
+            const daysContainer = document.createElement('div');
+            planData.training_plan.forEach(day => {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'training-plan-day';
+
+                // Date and weather
+                const header = document.createElement('div');
+                header.className = 'training-plan-day-header';
+                header.innerHTML = `
+                    <div class="training-plan-date">${day.date} ${day.day_of_week}</div>
+                    <div class="training-plan-weather">
+                        ${day.weather.condition_icon} ${day.weather.condition} 
+                        ${day.weather.temperature.high}°C / ${day.weather.temperature.low}°C
+                    </div>
+                `;
+                dayDiv.appendChild(header);
+
+                // Training content
+                const trainingSection = document.createElement('div');
+                trainingSection.className = 'training-plan-section';
+                trainingSection.innerHTML = `
+                    <div class="training-plan-section-title">🏃 Training Content</div>
+                    <div class="training-plan-section-content">
+                        <strong>${day.training.sport_type}</strong> - ${day.training.duration} (${day.training.intensity} intensity)<br>
+                        ${day.training.description}
+                    </div>
+                `;
+                dayDiv.appendChild(trainingSection);
+
+                // Recommended venue
+                if (day.venue && day.venue.name) {
+                    const venueSection = document.createElement('div');
+                    venueSection.className = 'training-plan-section training-plan-venue';
+                    const mapLink = day.venue.map_url 
+                        ? `<a href="${day.venue.map_url}" target="_blank">View Map</a>`
+                        : '';
+                    venueSection.innerHTML = `
+                        <div class="training-plan-section-title">📍 Recommended Venue</div>
+                        <div class="training-plan-section-content">
+                            <strong>${day.venue.name}</strong><br>
+                            ${day.venue.address}<br>
+                            Distance: ${day.venue.distance} | Rating: ${day.venue.rating ? '⭐'.repeat(Math.round(day.venue.rating)) : 'N/A'} ${mapLink}
+                        </div>
+                    `;
+                    dayDiv.appendChild(venueSection);
+                }
+
+                // Recommended gear
+                if (day.gear) {
+                    const gearSection = document.createElement('div');
+                    gearSection.className = 'training-plan-section';
+                    let gearHtml = '<div class="training-plan-section-title">🎒 Recommended Gear</div><div class="training-plan-gear">';
+                    
+                    if (day.gear.shoes && day.gear.shoes.length > 0) {
+                        day.gear.shoes.forEach(item => {
+                            gearHtml += `<span class="training-plan-gear-item">👟 ${item}</span>`;
+                        });
+                    }
+                    if (day.gear.clothing && day.gear.clothing.length > 0) {
+                        day.gear.clothing.forEach(item => {
+                            gearHtml += `<span class="training-plan-gear-item">👕 ${item}</span>`;
+                        });
+                    }
+                    if (day.gear.accessories && day.gear.accessories.length > 0) {
+                        day.gear.accessories.forEach(item => {
+                            gearHtml += `<span class="training-plan-gear-item">🎯 ${item}</span>`;
+                        });
+                    }
+                    
+                    gearHtml += '</div>';
+                    gearSection.innerHTML = gearHtml;
+                    dayDiv.appendChild(gearSection);
+                }
+
+                // Notes
+                if (day.notes) {
+                    const notesSection = document.createElement('div');
+                    notesSection.className = 'training-plan-section';
+                    notesSection.innerHTML = `
+                        <div class="training-plan-section-title">💡 Notes</div>
+                        <div class="training-plan-section-content">${day.notes}</div>
+                    `;
+                    dayDiv.appendChild(notesSection);
+                }
+
+                daysContainer.appendChild(dayDiv);
+            });
+            container.appendChild(daysContainer);
+
+            // Summary
+            if (planData.summary) {
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'training-plan-summary';
+                summaryDiv.innerHTML = `
+                    <div class="training-plan-summary-title">📊 Training Plan Summary</div>
+                    <div class="training-plan-section-content">
+                        <strong>Total Days:</strong> ${planData.summary.total_days} days<br>
+                        <strong>Outdoor Activities:</strong> ${planData.summary.outdoor_days} days | 
+                        <strong>Indoor Activities:</strong> ${planData.summary.indoor_days} days<br>
+                        <strong>Sport Types:</strong> ${planData.summary.sport_types_covered.join(', ')}<br>
+                        ${planData.summary.general_advice ? `<br><strong>General Advice:</strong> ${planData.summary.general_advice}` : ''}
+                    </div>
+                `;
+                container.appendChild(summaryDiv);
+            }
+
+            return container;
+        }
+
+        function addMessage(role, content) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            // Check if it's training plan JSON
+            if (role === 'agent') {
+                const planData = extractTrainingPlanJSON(content);
+                if (planData) {
+                    // Render training plan
+                    const planContainer = renderTrainingPlan(planData);
+                    messageDiv.appendChild(planContainer);
+                } else {
+                    // Regular text message
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'message-content';
+                    contentDiv.textContent = content;
+                    messageDiv.appendChild(contentDiv);
+                }
+            } else {
+                // User message
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = content;
+                messageDiv.appendChild(contentDiv);
+            }
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // Note: Do not call checkAndShowForm in addMessage
+            // Form check is only called in sendMessage response handler to avoid duplicate processing
+        }
+        
+        /**
+         * Check Agent message and display corresponding form
+         * Core logic:
+         * 1. If form field is matched → show dynamicFormContainer and corresponding form, hide chat-input-form
+         * 2. If no field is matched → information collection completed, hide dynamicFormContainer, show chat-input-form
+         */
+        function checkAndShowForm(message) {
+            const formContainer = document.getElementById('dynamicFormContainer');
+            const chatForm = document.getElementById('chatForm');
+            
+            console.log('🔍 Checking keywords in message:', message);
+            console.log('🔍 Current collection state:', isCollectingInfo ? 'Collecting' : 'Completed');
+            
+            // Check if message contains keywords for information to collect
+            // Generate field order dynamically from formFields configuration
+            const fieldOrder = Object.keys(formFields);
+            const messageLower = message.toLowerCase();
+            
+            // Iterate through all fields to find matches
+            for (const fieldKey of fieldOrder) {
+                const fieldConfig = formFields[fieldKey];
+                if (!fieldConfig) continue;
+                
+                const hasKeyword = fieldConfig.keywords.some(keyword => 
+                    messageLower.includes(keyword.toLowerCase())
+                );
+                
+                if (hasKeyword) {
+                    // Matched form field → still in information collection phase
+                    isCollectingInfo = true;
+                    const matchedKeyword = fieldConfig.keywords.find(k => messageLower.includes(k.toLowerCase()));
+                    console.log('✅ Matched form field:', fieldKey, 'Matched keyword:', matchedKeyword);
+                    
+                    // First ensure form container is visible
+                    formContainer.classList.remove('hidden');
+                    formContainer.style.display = 'block';
+                    formContainer.style.visibility = 'visible';
+                    formContainer.style.opacity = '1';
+                    
+                    // Clear previous form content (after showing container)
+                    formContainer.innerHTML = '';
+                    console.log('🔍 Container cleared, ready to create new form');
+                    
+                    // Hide text input box
+                    if (chatForm) {
+                        chatForm.style.display = 'none';
+                    }
+                    
+                    // Show corresponding form
+                    showFormField(fieldKey, fieldConfig);
+                    
+                    // Verify if form was successfully added
+                    setTimeout(() => {
+                        const formsInContainer = formContainer.querySelectorAll('form');
+                        console.log('🔍 Verification: Number of forms in container:', formsInContainer.length);
+                        if (formsInContainer.length === 0) {
+                            console.error('❌ Error: Form was not successfully added to container!');
+                        } else {
+                            console.log('✅ Verification: Form successfully added to container');
+                        }
+                    }, 200);
+                    
+                    return;
+                }
+            }
+            
+            // No form field matched → information collection completed
+            console.log('✅ Information collection completed, switching to text input mode');
+            isCollectingInfo = false;
+            
+            // Hide form container
+            formContainer.innerHTML = '';
+            formContainer.classList.add('hidden');
+            formContainer.style.display = 'none';
+            
+            // Show text input box
+            if (chatForm) {
+                chatForm.style.display = 'flex';
+            }
+        }
+        
+        /**
+         * Show form field
+         * Create corresponding form elements based on field type
+         */
+        function showFormField(fieldKey, fieldConfig) {
+            const formContainer = document.getElementById('dynamicFormContainer');
+            const chatForm = document.getElementById('chatForm');
+            
+            console.log('📝 Showing form field:', fieldKey);
+            
+            // Ensure form container is visible
+            formContainer.classList.remove('hidden');
+            formContainer.style.display = 'block';
+            formContainer.style.visibility = 'visible';
+            formContainer.style.opacity = '1';
+            
+            // Ensure text input box is hidden
+            if (chatForm) {
+                chatForm.style.display = 'none';
+            }
+            
+            const form = document.createElement('form');
+            form.className = 'dynamic-form';
+            form.id = `form-${fieldKey}`;
+            
+            const label = document.createElement('label');
+            label.textContent = fieldConfig.label;
+            label.setAttribute('for', `input-${fieldKey}`);
+            
+            const formGroup = document.createElement('div');
+            formGroup.className = 'form-group';
+            formGroup.appendChild(label);
+            
+            let input;
+            
+            // Special handling: city field needs location button
+            if (fieldKey === 'city' && fieldConfig.type === 'text') {
+                const locationWrapper = document.createElement('div');
+                locationWrapper.className = 'location-input-wrapper';
+                
+                input = document.createElement('input');
+                input.type = 'text';
+                input.id = `input-${fieldKey}`;
+                input.placeholder = fieldConfig.placeholder || '';
+                input.required = true;
+                
+                // Create location button
+                const locationButton = document.createElement('button');
+                locationButton.type = 'button';
+                locationButton.className = 'location-button';
+                locationButton.innerHTML = '📍 Get Current Location';
+                
+                // Create address information display area
+                const addressInfo = document.createElement('div');
+                addressInfo.className = 'address-info';
+                
+                // Bind location button event
+                locationButton.addEventListener('click', () => {
+                    getCurrentLocation(input, locationButton, addressInfo);
+                });
+                
+                // Listen to input changes, if user manually edits, clear address info
+                input.addEventListener('input', (e) => {
+                    // Only clear if value is not programmatically set
+                    if (e.inputType !== undefined) {
+                        currentLocationData = null;
+                        addressInfo.innerHTML = '';
+                    }
+                });
+                
+                locationWrapper.appendChild(input);
+                locationWrapper.appendChild(locationButton);
+                formGroup.appendChild(locationWrapper);
+                formGroup.appendChild(addressInfo);
+                
+            } else if (fieldConfig.type === 'number' || fieldConfig.type === 'text') {
+                input = document.createElement('input');
+                input.type = fieldConfig.type;
+                input.id = `input-${fieldKey}`;
+                input.placeholder = fieldConfig.placeholder || '';
+                if (fieldConfig.min !== undefined) input.min = fieldConfig.min;
+                if (fieldConfig.max !== undefined) input.max = fieldConfig.max;
+                input.required = true;
+            } else if (fieldConfig.type === 'select') {
+                input = document.createElement('select');
+                input.id = `input-${fieldKey}`;
+                input.required = true;
+                
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Please select...';
+                input.appendChild(defaultOption);
+                
+                fieldConfig.options.forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option.value;
+                    opt.textContent = option.label;
+                    input.appendChild(opt);
+                });
+            } else if (fieldConfig.type === 'radio') {
+                const radioGroup = document.createElement('div');
+                radioGroup.className = 'radio-group';
+                
+                fieldConfig.options.forEach(option => {
+                    const radioOption = document.createElement('div');
+                    radioOption.className = 'radio-option';
+                    
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = `input-${fieldKey}`;
+                    radio.id = `input-${fieldKey}-${option.value}`;
+                    radio.value = option.value;
+                    radio.required = true;
+                    
+                    const radioLabel = document.createElement('label');
+                    radioLabel.setAttribute('for', `input-${fieldKey}-${option.value}`);
+                    radioLabel.textContent = option.label;
+                    
+                    radioOption.appendChild(radio);
+                    radioOption.appendChild(radioLabel);
+                    radioGroup.appendChild(radioOption);
+                });
+                
+                formGroup.appendChild(radioGroup);
+                input = radioGroup; // For later reference
+            } else if (fieldConfig.type === 'checkbox') {
+                const checkboxGroup = document.createElement('div');
+                checkboxGroup.className = 'checkbox-group';
+                
+                fieldConfig.options.forEach(option => {
+                    const checkboxOption = document.createElement('div');
+                    checkboxOption.className = 'checkbox-option';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `input-${fieldKey}-${option.value}`;
+                    checkbox.value = option.value;
+                    
+                    const checkboxLabel = document.createElement('label');
+                    checkboxLabel.setAttribute('for', `input-${fieldKey}-${option.value}`);
+                    checkboxLabel.textContent = option.label;
+                    
+                    checkboxOption.appendChild(checkbox);
+                    checkboxOption.appendChild(checkboxLabel);
+                    checkboxGroup.appendChild(checkboxOption);
+                });
+                
+                formGroup.appendChild(checkboxGroup);
+                input = checkboxGroup; // For later reference
+            }
+            
+            if (input && input.tagName !== 'DIV') {
+                formGroup.appendChild(input);
+            }
+            
+            const submitButton = document.createElement('button');
+            submitButton.type = 'submit';
+            submitButton.className = 'form-submit-button';
+            submitButton.textContent = 'Submit';
+            submitButton.disabled = true; // Initial state: disabled
+            
+            form.appendChild(formGroup);
+            form.appendChild(submitButton);
+            
+            // Validation function: check if there's a value and update submit button state
+            function validateAndUpdateButton() {
+                let hasValue = false;
+                
+                if (fieldConfig.type === 'checkbox') {
+                    // Multiple checkboxes
+                    const checked = form.querySelectorAll('input[type="checkbox"]:checked');
+                    hasValue = checked.length > 0;
+                } else if (fieldConfig.type === 'radio') {
+                    // Radio buttons
+                    const selected = form.querySelector(`input[name="input-${fieldKey}"]:checked`);
+                    hasValue = selected !== null;
+                } else if (fieldConfig.type === 'select') {
+                    // Dropdown selection
+                    hasValue = input.value !== '';
+                } else {
+                    // Text or number input
+                    hasValue = input.value.trim() !== '';
+                }
+                
+                // If no value or waiting for response, disable button
+                submitButton.disabled = !hasValue || isWaitingForResponse;
+            }
+            
+            // Add event listeners based on input type
+            if (fieldConfig.type === 'number' || fieldConfig.type === 'text') {
+                // Text/number input: listen to input event
+                input.addEventListener('input', validateAndUpdateButton);
+            } else if (fieldConfig.type === 'select') {
+                // Dropdown selection: listen to change event
+                input.addEventListener('change', validateAndUpdateButton);
+            } else if (fieldConfig.type === 'radio') {
+                // Radio buttons: listen to all radio change events
+                const radios = form.querySelectorAll(`input[name="input-${fieldKey}"]`);
+                radios.forEach(radio => {
+                    radio.addEventListener('change', validateAndUpdateButton);
+                });
+            } else if (fieldConfig.type === 'checkbox') {
+                // Multiple checkboxes: listen to all checkbox change events
+                const checkboxes = form.querySelectorAll(`input[type="checkbox"]`);
+                checkboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', validateAndUpdateButton);
+                });
+            }
+            
+            // Initial validation (check initial state)
+            validateAndUpdateButton();
+            
+            // Form submission handling
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Immediately disable button on submit to prevent duplicate submissions
+                submitButton.disabled = true;
+                submitButton.textContent = 'Submitting...';
+                
+                let value;
+                
+                if (fieldConfig.type === 'checkbox') {
+                    // Multiple checkboxes
+                    const checked = form.querySelectorAll('input[type="checkbox"]:checked');
+                    value = Array.from(checked).map(cb => cb.value).join(', ');
+                    if (!value) {
+                        alert('Please select at least one option');
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Submit';
+                        return;
+                    }
+                } else if (fieldConfig.type === 'radio') {
+                    // Radio buttons
+                    const selected = form.querySelector(`input[name="input-${fieldKey}"]:checked`);
+                    if (!selected) {
+                        alert('Please select an option');
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Submit';
+                        return;
+                    }
+                    value = selected.value;
+                } else {
+                    // Text or number input
+                    value = input.value.trim();
+                    if (!value) {
+                        alert('Please enter ' + fieldConfig.label);
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Submit';
+                        return;
+                    }
+                }
+                
+                // Special handling: city field, if detailed address info exists, send complete info
+                if (fieldKey === 'city' && currentLocationData) {
+                    const locationInfo = `
+City: ${currentLocationData.city}
+Full Address: ${currentLocationData.formatted_address}
+Detailed Address:
+${currentLocationData.address.city ? `  City: ${currentLocationData.address.city}` : ''}
+${currentLocationData.address.district ? `  District: ${currentLocationData.address.district}` : ''}
+${currentLocationData.address.province ? `  Province/State: ${currentLocationData.address.province}` : ''}
+${currentLocationData.address.country ? `  Country: ${currentLocationData.address.country}` : ''}
+${currentLocationData.address.street ? `  Street: ${currentLocationData.address.street}` : ''}
+Coordinates: Latitude ${currentLocationData.latitude}, Longitude ${currentLocationData.longitude}
+                    `.trim();
+                    value = locationInfo;
+                    // Clear location data to avoid reusing on next submission
+                    currentLocationData = null;
+                }
+                
+                // Send form data (sendMessage will set isWaitingForResponse = true)
+                await sendMessage(value);
+                
+                // Keep button disabled after sending, wait for Agent reply
+                // After Agent replies, checkAndShowForm will create new form, old form will be replaced
+                // Note: After sendMessage completes, if new form is created, old form will be removed, so no need to restore button state here
+            });
+            
+            formContainer.appendChild(form);
+            
+            console.log('✅ Form added to container:', fieldKey);
+            console.log('🔍 Container innerHTML length:', formContainer.innerHTML.length);
+            console.log('🔍 Number of forms in container:', formContainer.querySelectorAll('form').length);
+            console.log('🔍 Form element:', form);
+            console.log('🔍 Form offsetHeight:', form.offsetHeight);
+            
+            // Auto focus on input
+            if (input && input.focus) {
+                setTimeout(() => {
+                    try {
+                        input.focus();
+                        console.log('🎯 Input focused');
+                    } catch (e) {
+                        console.error('❌ Focus failed:', e);
+                    }
+                }, 100);
+            }
+        }
+
+        function showTypingIndicator() {
+            const messagesDiv = document.getElementById('chatMessages');
+            const indicator = document.createElement('div');
+            indicator.className = 'message agent';
+            indicator.id = 'typingIndicator';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+            
+            indicator.appendChild(contentDiv);
+            messagesDiv.appendChild(indicator);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        // Disable all form submit buttons
+        function disableAllFormButtons() {
+            const formContainer = document.getElementById('dynamicFormContainer');
+            const allSubmitButtons = formContainer.querySelectorAll('.form-submit-button');
+            allSubmitButtons.forEach(button => {
+                button.disabled = true;
+                if (button.textContent === 'Submit') {
+                    button.textContent = 'Submitting...';
+                }
+            });
+        }
+
+        async function sendMessage(message) {
+            if (!userId || !sessionId) {
+                await initializeSession();
+                return;
+            }
+
+            addMessage('user', message);
+            showTypingIndicator();
+            isWaitingForResponse = true;
+            
+            // Disable all form submit buttons and text input send button
+            disableAllFormButtons();
+            document.getElementById('sendButton').disabled = true;
+
+            try {
+                const response = await fetch('/api/send_message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `user_id=${encodeURIComponent(userId)}&session_id=${encodeURIComponent(sessionId)}&message=${encodeURIComponent(message)}`
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let responseText = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            if (data === '[DONE]') {
+                                hideTypingIndicator();
+                                if (responseText) {
+                                    console.log('📨 Agent reply:', responseText);
+                                    addMessage('agent', responseText);
+                                    // Check if form needs to be displayed
+                                    checkAndShowForm(responseText);
+                                } else {
+                                    console.warn('⚠️ Agent reply is empty');
+                                }
+                                isWaitingForResponse = false;
+                                // If information collection is completed, enable text input send button
+                                if (!isCollectingInfo) {
+                                    document.getElementById('sendButton').disabled = false;
+                                }
+                                return;
+                            }
+                            responseText += data;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                hideTypingIndicator();
+                addMessage('agent', 'Sorry, an error occurred while sending the message. Please try again.');
+                isWaitingForResponse = false;
+                document.getElementById('sendButton').disabled = false;
+            }
+        }
+
+        document.getElementById('chatForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (message && !isWaitingForResponse) {
+                input.value = '';
+                await sendMessage(message);
+            }
+        });
+
+        // Automatically initialize session and show welcome message on page load
+        window.addEventListener('load', () => {
+            initializeSession();
+        });
+    </script>
+</body>
+</html>

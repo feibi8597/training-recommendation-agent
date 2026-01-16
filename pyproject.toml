@@ -1,0 +1,26 @@
+[project]
+name = "training-recommend"
+version = "0.1.0"
+description = "Training recommendation agent using Agent Development Kit"
+authors = [{ name = "Google", email = "adk-samples@google.com" }]
+license = "Apache-2.0"
+readme = "README.md"
+dependencies = [
+    "google-cloud-aiplatform[adk,agent_engine]>=1.93.0",
+    "google-adk>=1.0.0",
+    "pydantic-settings>=2.8.1",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "python-dotenv>=1.0.0",
+    "googlemaps>=4.10.0",
+    "requests>=2.31.0",
+]
+
+requires-python = ">=3.10,<3.13"
+
+[build-system]
+requires = ["uv_build>=0.8.14,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
